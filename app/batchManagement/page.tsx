@@ -8,25 +8,33 @@ export default function BatchManagement() {
   const [batches, setBatches] = useState<any[]>([]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     const fetchBatches = async () => {
       try {
         const userData = localStorage.getItem("user");
         const businessOwnerId = userData ? JSON.parse(userData)._id : null;
 
         if (!businessOwnerId) {
-          console.log("No business owner id");
+          console.warn("No business owner ID found");
           setLoading(false);
           return;
         }
-        const res = await api.get(`/batch/business-owner/${businessOwnerId}`);
 
-        if (res?.data?.status && Array.isArray(res.data.data)) {
-          setBatches(res.data.data);
+        const res = await api.get(`/batch`);
+        console.log("API RESPONSE:", res.data);
+
+        const batches = res?.data?.data?.batches;
+        const pagination = res?.data?.data?.pagination;
+
+        if (Array.isArray(batches)) {
+          setBatches(batches);
+          // Optional: setPagination(pagination);
         } else {
           setBatches([]);
         }
       } catch (err) {
-        console.error(err);
+        console.error("API ERROR:", err);
         setBatches([]);
       } finally {
         setLoading(false);

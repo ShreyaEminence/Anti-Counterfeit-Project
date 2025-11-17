@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import api from "@/_lib/api";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+import { setCustomCookie } from "@/_lib/utils/helper";
 export default function LoginPage() {
   const router = useRouter();
 
@@ -35,8 +36,24 @@ export default function LoginPage() {
 
       const { data } = await api.post("/business-owner/login", payload);
 
-      localStorage.setItem("token", data?.data?.token);
+      // Save token
+      localStorage.setItem("token", data?.token);
+      setCustomCookie("token", data?.token);
 
+      // Save user
+      if (data?.data?.user) {
+        localStorage.setItem("user", JSON.stringify(data.data.user));
+      }
+
+      // Save business owner data
+      if (data?.data?.businessOwner) {
+        localStorage.setItem(
+          "businessOwner",
+          JSON.stringify(data.data.businessOwner)
+        );
+      }
+
+      // Redirect
       router.push("/dashboard");
     } catch (error: any) {
       console.error(error);
