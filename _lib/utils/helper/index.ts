@@ -54,3 +54,51 @@ export const removeCustomCookie = (Key: string): void => {
 //     return null;
 //   }
 // };
+
+export const parseProduct = (productString?: string | null) => {
+  if (!productString || typeof productString !== "string") return {};
+
+  try {
+    const out: any = {};
+
+    // Extract ObjectId
+    const idMatch = /_id:\s*new ObjectId\('([^']+)'\)/.exec(productString);
+    if (idMatch) out._id = idMatch[1];
+
+    // Extract simple fields like skuId: 'SKU-e'
+    const simpleFieldRegex =
+      /(skuId|title|summary|mrp|currency)\s*:\s*'([^']+)'/g;
+
+    let match;
+    while ((match = simpleFieldRegex.exec(productString)) !== null) {
+      out[match[1]] = match[2];
+    }
+
+    return out;
+  } catch (err) {
+    console.error("parseProduct failed:", err);
+    return {};
+  }
+};
+
+export function getSerialRange(prefix: string, start: string, count: number) {
+  if (!start || !count) return { start, end: start };
+
+  // Extract numeric part
+  const match = start.match(/(\d+)$/);
+  if (!match) return { start, end: start };
+
+  const numStr = match[1]; // "000001"
+  const num = parseInt(numStr, 10); // 1
+  const endNum = num + count - 1; // e.g. 200
+
+  const paddedEnd = endNum.toString().padStart(numStr.length, "0");
+
+  // Replace only last numeric block
+  const endSerial = start.replace(/\d+$/, paddedEnd);
+
+  return {
+    start,
+    end: endSerial,
+  };
+}

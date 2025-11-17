@@ -25,7 +25,7 @@ export default function RootLayout({
           </>
         )}
 
-        <main className={!isAuthPage ? "ml-64 mt-16 p-6" : ""}>{children}</main>
+        <main className={!isAuthPage ? "ml-64 mt-10 p-6" : ""}>{children}</main>
       </body>
     </html>
   );

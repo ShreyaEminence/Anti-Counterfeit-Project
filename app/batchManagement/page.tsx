@@ -1,149 +1,187 @@
 "use client";
-
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import EmptyState from "@/components/batchmgt/initialCreate";
+import CardView from "@/components/batchmgt/cardView";
+import ListView from "@/components/batchmgt/listView";
+import { FiGrid, FiList } from "react-icons/fi";
+import { BiDownload } from "react-icons/bi";
 import api from "@/_lib/api";
+import { useBatches } from "@/_lib/utils/hooks/useBatches";
+import Pagination from "@/components/common/pagination";
+
 export default function BatchManagement() {
-  const [loading, setLoading] = useState(true);
-  const [batches, setBatches] = useState<any[]>([]);
+  const [page, setPage] = useState(1);
+  const { loading, batches, pagination } = useBatches(page);
+  const [view, setView] = useState<"card" | "list">("card");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [showExport, setShowExport] = useState(false);
+  const [exportType, setExportType] = useState("excel");
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
+  const toggleSelect = (id: string) => {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
 
-    const fetchBatches = async () => {
-      try {
-        const userData = localStorage.getItem("user");
-        const businessOwnerId = userData ? JSON.parse(userData)._id : null;
+  const toggleSelectAll = () => {
+    setSelected(
+      selected.length === batches.length ? [] : batches.map((b) => b._id)
+    );
+  };
 
-        if (!businessOwnerId) {
-          console.warn("No business owner ID found");
-          setLoading(false);
-          return;
-        }
+  const handleExport = async () => {
+    if (!selected.length) return;
+    try {
+      const query = new URLSearchParams();
+      query.append("batchIds", JSON.stringify(selected));
 
-        const res = await api.get(`/batch`);
-        console.log("API RESPONSE:", res.data);
+      const url =
+        exportType === "excel"
+          ? `/batch/download/excel?${query.toString()}`
+          : `/batch/download/csv?${query.toString()}`;
 
-        const batches = res?.data?.data?.batches;
-        const pagination = res?.data?.data?.pagination;
+      const response = await api.get(url, { responseType: "blob" });
+      const blob = new Blob([response.data]);
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download =
+        exportType === "excel" ? "batches_export.xlsx" : "batches_export.csv";
+      link.click();
+      window.URL.revokeObjectURL(downloadUrl);
+      setShowExport(false);
+    } catch (err) {
+      console.error("EXPORT FAILED", err);
+    }
+  };
 
-        if (Array.isArray(batches)) {
-          setBatches(batches);
-          // Optional: setPagination(pagination);
-        } else {
-          setBatches([]);
-        }
-      } catch (err) {
-        console.error("API ERROR:", err);
-        setBatches([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchBatches();
-  }, []);
-
-  if (loading) {
-    return <div className="p-10">Loading...</div>;
-  }
-
-  if (!batches.length) {
+  if (loading)
+    return (
+      <div className="flex items-center justify-center h-[70vh]">
+        <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  if (!batches.length)
     return <EmptyState onCreate={() => console.log("Create Batch clicked")} />;
-  }
 
   return (
     <div className="p-6">
-      {/* Page Title */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold text-gray-800">All Batches</h1>
+      {/* Header */}
+      <div className="mb-6 flex flex-col gap-4">
+        {/* First line: View toggle & Create button */}
+        <div className="flex justify-between items-center">
+          <div className="flex items-center bg-gray-100 rounded-lg overflow-hidden">
+            <button
+              onClick={() => setView("card")}
+              className={`px-3 py-2 flex items-center gap-1 ${
+                view === "card"
+                  ? "bg-white shadow text-purple-600"
+                  : "text-gray-500"
+              }`}
+            >
+              <FiGrid /> Card View
+            </button>
+            <button
+              onClick={() => setView("list")}
+              className={`px-3 py-2 flex items-center gap-1 ${
+                view === "list"
+                  ? "bg-white shadow text-purple-600"
+                  : "text-gray-500"
+              }`}
+            >
+              <FiList /> List View
+            </button>
+          </div>
 
-        <button className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg">
-          Create New Batch
-        </button>
-      </div>
-
-      {/* Filters */}
-      <div className="flex items-center gap-4 mb-5">
-        <input
-          type="text"
-          placeholder="Search Batches..."
-          className="px-3 py-2 border rounded-lg w-64"
-        />
-
-        <select className="px-3 py-2 border rounded-lg">
-          <option>All Brands</option>
-        </select>
-
-        <select className="px-3 py-2 border rounded-lg">
-          <option>All Products</option>
-        </select>
-
-        <select className="px-3 py-2 border rounded-lg">
-          <option>All Status</option>
-        </select>
-
-        <button className="ml-auto px-4 py-2 border rounded-lg">Export</button>
-      </div>
-
-      {/* Table */}
-      <div className="bg-white rounded-xl shadow overflow-hidden">
-        <table className="w-full border-collapse">
-          <thead className="bg-gray-100 text-left text-gray-600">
-            <tr>
-              <th className="p-3">Batch ID</th>
-              <th className="p-3">Date Created</th>
-              <th className="p-3">SKU ID</th>
-              <th className="p-3">Mfg Date</th>
-              <th className="p-3">No. of Items</th>
-              <th className="p-3">Status</th>
-              <th className="p-3 text-right">Action</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {batches.map((item: any, index: number) => (
-              <tr
-                key={index}
-                className="border-b hover:bg-gray-50 text-gray-700"
-              >
-                <td className="p-3">{item.batchId}</td>
-                <td className="p-3">{item.createdAt?.slice(0, 10)}</td>
-                <td className="p-3">{item.sku}</td>
-                <td className="p-3">{item.mfgDate?.slice(0, 10)}</td>
-                <td className="p-3">{item.itemsCount}</td>
-
-                <td className="p-3 font-medium">
-                  {item.status === "active" ? (
-                    <span className="text-green-600">Active</span>
-                  ) : (
-                    <span className="text-red-600">In Active</span>
-                  )}
-                </td>
-
-                <td className="p-3 text-right">
-                  <button className="px-4 py-1.5 text-sm text-purple-600 border border-purple-600 rounded-lg hover:bg-purple-50">
-                    Edit Batch
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination */}
-      <div className="flex justify-between items-center mt-4 px-2">
-        <p className="text-gray-500">Showing {batches.length} results</p>
-
-        <div className="flex items-center gap-2">
-          <button className="px-3 py-1 border rounded">Prev</button>
-          <button className="px-3 py-1 border rounded bg-purple-600 text-white">
-            1
+          <button className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg">
+            Create New Batch
           </button>
-          <button className="px-3 py-1 border rounded">Next</button>
+        </div>
+
+        {/* Second line: Search + filters + export */}
+        <div className="flex flex-wrap items-center gap-3 justify-between bg-white p-4 rounded-xl border shadow-sm">
+          {/* Left side: Search + filters */}
+          <div className="flex flex-wrap items-center gap-3">
+            <input
+              type="text"
+              placeholder="Search Batches..."
+              className="px-3 py-2 border rounded-lg w-64 focus:ring-2 focus:ring-purple-300 focus:border-purple-500 outline-none transition"
+            />
+
+            <select className="px-3 py-2 border rounded-lg min-w-[150px] focus:ring-2 focus:ring-purple-300 focus:border-purple-500 outline-none transition">
+              <option value="">All Products</option>
+              {/* populate products dynamically if needed */}
+            </select>
+
+            <select className="px-3 py-2 border rounded-lg min-w-[150px] focus:ring-2 focus:ring-purple-300 focus:border-purple-500 outline-none transition">
+              <option value="">All Brands </option>
+            </select>
+
+            <select className="px-3 py-2 border rounded-lg min-w-[150px] focus:ring-2 focus:ring-purple-300 focus:border-purple-500 outline-none transition">
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="processing">Processing</option>
+            </select>
+          </div>
+
+          {/* Right side: Export */}
+          <div className="relative">
+            <button
+              onClick={() => setShowExport(!showExport)}
+              disabled={selected.length === 0}
+              className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm ${
+                selected.length === 0
+                  ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                  : "bg-white hover:bg-gray-100 text-purple-600"
+              }`}
+            >
+              <BiDownload className="text-lg" />
+              Export
+            </button>
+            {showExport && selected.length > 0 && (
+              <div className="absolute right-0 mt-2 w-56 bg-white border shadow-xl rounded-xl p-2 z-50">
+                <button
+                  onClick={() => {
+                    setExportType("excel");
+                    handleExport();
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 rounded-lg"
+                >
+                  Export as Excel (.xlsx)
+                </button>
+
+                <button
+                  onClick={() => {
+                    setExportType("csv");
+                    handleExport();
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 rounded-lg"
+                >
+                  Export as CSV (.csv)
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Batch Views */}
+      {view === "card" ? (
+        <CardView
+          batches={batches}
+          selected={selected}
+          toggleSelect={toggleSelect}
+        />
+      ) : (
+        <ListView
+          batches={batches}
+          selected={selected}
+          toggleSelect={toggleSelect}
+          toggleSelectAll={toggleSelectAll}
+        />
+      )}
+      <Pagination pagination={pagination} onPageChange={setPage} />
     </div>
   );
 }

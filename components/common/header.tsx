@@ -15,9 +15,7 @@ export default function Header() {
   const avatarInitial = name?.charAt(0)?.toUpperCase() || "U";
 
   return (
-    <header className="w-full h-16 bg-white dark:bg-gray-800 shadow-sm flex items-center justify-between px-6">
-      <div></div> {/* Keeps layout balanced */}
-      {/* Right Side Profile */}
+    <header className="fixed top-0 left-64 right-0 h-16 bg-white dark:bg-gray-800 shadow-sm flex items-center justify-between px-6 z-50">
       <div className="flex items-center gap-4 ml-auto">
         <span className="text-gray-600 dark:text-gray-300 font-medium">
           {name}
