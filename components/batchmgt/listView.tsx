@@ -54,10 +54,10 @@ export default function ListView({
                 {parseProduct(b.productId)?.title || "N/A"}
               </td>
               <td className="p-3">
-                {parseProduct(b.productId)?.brand || "N/A"}
+                {b.brand?.name || "N/A"}
               </td>
               <td className="p-3">{b.noOfItems}</td>
-              <td className="p-3">50/50 (100%)</td>
+              <td className="p-3">{b.status}</td>
 
               <td className="p-3">
                 {b.scanData ? (

@@ -25,21 +25,37 @@ import { Batch } from "@/_lib/types";
 //   return { loading, batches, setBatches };
 // };
 
-export function useBatches(page = 1) {
+export function useBatches(page = 1, search = "") {
   const [loading, setLoading] = useState(true);
   const [batches, setBatches] = useState<Batch[]>([]);
-  const [pagination, setPagination] = useState(null);
+  const [pagination, setPagination] = useState<any>(null);
 
   useEffect(() => {
     async function load() {
-      setLoading(true);
-      const res = await api.get(`/batch?page=${page}&limit=10`);
-      setBatches(res.data.data.batches);
-      setPagination(res.data.data.pagination);
-      setLoading(false);
+      try {
+        setLoading(true);
+        const query = new URLSearchParams({
+          page: page.toString(),
+          limit: "10",
+        });
+        if (search.trim() !== "") {
+          query.append("batchId", search.trim());
+        }
+
+        const res = await api.get(`/batch?${query.toString()}`);
+        setBatches(res.data.data.batches);
+        setPagination(res.data.data.pagination);
+      } catch (err) {
+        console.error("Failed to fetch batches", err);
+        setBatches([]);
+        setPagination(null);
+      } finally {
+        setLoading(false);
+      }
     }
+
     load();
-  }, [page]);
+  }, [page, search]);
 
   return { loading, batches, pagination };
 }

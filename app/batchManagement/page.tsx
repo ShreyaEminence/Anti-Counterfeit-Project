@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import EmptyState from "@/components/batchmgt/initialCreate";
 import CardView from "@/components/batchmgt/cardView";
 import ListView from "@/components/batchmgt/listView";
@@ -11,11 +11,50 @@ import Pagination from "@/components/common/pagination";
 
 export default function BatchManagement() {
   const [page, setPage] = useState(1);
-  const { loading, batches, pagination } = useBatches(page);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+  const { loading, batches, pagination } = useBatches(page, debouncedSearch);
   const [view, setView] = useState<"card" | "list">("card");
   const [selected, setSelected] = useState<string[]>([]);
   const [showExport, setShowExport] = useState(false);
   const [exportType, setExportType] = useState("excel");
+  const [products, setProducts] = useState<any[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
+
+  const [filterLoading, setFilterLoading] = useState(false);
+  const businessOwnerId = localStorage.getItem("user")
+    ? JSON.parse(localStorage.getItem("user")!)._id
+    : "";
+
+  // Update debouncedSearch after user stops typing for 500ms
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1); // reset to first page on new search
+    }, 500);
+
+    return () => clearTimeout(handler); // clear timeout if user types again
+  }, [search]);
+  useEffect(() => {
+    const fetchFilters = async () => {
+      try {
+        setFilterLoading(true);
+        const [productsRes, brandsRes] = await Promise.all([
+          api.get(`/product/business-owner/${businessOwnerId}`),
+          api.get(`/brand/business-owner/${businessOwnerId}`),
+        ]);
+        setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
+        setBrands(Array.isArray(brandsRes.data) ? brandsRes.data : []);
+      } catch (err) {
+        console.error("Failed to fetch filter data", err);
+        setProducts([]);
+        setBrands([]);
+      } finally {
+        setFilterLoading(false);
+      }
+    };
+    if (businessOwnerId) fetchFilters();
+  }, [businessOwnerId]);
 
   const toggleSelect = (id: string) => {
     setSelected((prev) =>
@@ -55,13 +94,13 @@ export default function BatchManagement() {
     }
   };
 
-  if (loading)
+  if ((loading && search == "") || filterLoading)
     return (
       <div className="flex items-center justify-center h-[70vh]">
         <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
-  if (!batches.length)
+  if (!batches.length && search == "")
     return <EmptyState onCreate={() => console.log("Create Batch clicked")} />;
 
   return (
@@ -104,17 +143,28 @@ export default function BatchManagement() {
           <div className="flex flex-wrap items-center gap-3">
             <input
               type="text"
-              placeholder="Search Batches..."
+              placeholder="Search By BatchId..."
               className="px-3 py-2 border rounded-lg w-64 focus:ring-2 focus:ring-purple-300 focus:border-purple-500 outline-none transition"
+              value={search}
+              onChange={(e) => setSearch(e.target.value.trim())}
             />
 
             <select className="px-3 py-2 border rounded-lg min-w-[150px] focus:ring-2 focus:ring-purple-300 focus:border-purple-500 outline-none transition">
               <option value="">All Products</option>
-              {/* populate products dynamically if needed */}
+              {products?.map((p) => (
+                <option key={p._id} value={p._id}>
+                  {p.name}
+                </option>
+              ))}{" "}
             </select>
 
             <select className="px-3 py-2 border rounded-lg min-w-[150px] focus:ring-2 focus:ring-purple-300 focus:border-purple-500 outline-none transition">
               <option value="">All Brands </option>
+              {brands?.map((b) => (
+                <option key={b._id} value={b._id}>
+                  {b.name}
+                </option>
+              ))}
             </select>
 
             <select className="px-3 py-2 border rounded-lg min-w-[150px] focus:ring-2 focus:ring-purple-300 focus:border-purple-500 outline-none transition">
@@ -167,21 +217,33 @@ export default function BatchManagement() {
       </div>
 
       {/* Batch Views */}
-      {view === "card" ? (
-        <CardView
-          batches={batches}
-          selected={selected}
-          toggleSelect={toggleSelect}
-        />
-      ) : (
-        <ListView
-          batches={batches}
-          selected={selected}
-          toggleSelect={toggleSelect}
-          toggleSelectAll={toggleSelectAll}
-        />
+      <div className="min-h-[400px] relative">
+        {loading && search != "" ? (
+          <div className="flex items-center justify-center h-[400px]">
+            <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : batches.length === 0 ? (
+          <div>No Matched Data Found</div>
+        ) : view === "card" ? (
+          <CardView
+            batches={batches}
+            selected={selected}
+            toggleSelect={toggleSelect}
+          />
+        ) : (
+          <ListView
+            batches={batches}
+            selected={selected}
+            toggleSelect={toggleSelect}
+            toggleSelectAll={toggleSelectAll}
+          />
+        )}
+      </div>
+
+      {/* Pagination */}
+      {batches.length > 0 && (
+        <Pagination pagination={pagination} onPageChange={setPage} />
       )}
-      <Pagination pagination={pagination} onPageChange={setPage} />
     </div>
   );
 }
