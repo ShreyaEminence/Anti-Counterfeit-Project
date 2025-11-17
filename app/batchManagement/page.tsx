@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import EmptyState from "@/components/batchmgt/initialCreate";
+import api from "@/_lib/api";
 export default function BatchManagement() {
   const [loading, setLoading] = useState(true);
   const [batches, setBatches] = useState<any[]>([]);
@@ -9,22 +10,18 @@ export default function BatchManagement() {
   useEffect(() => {
     const fetchBatches = async () => {
       try {
-        const businessOwnerId = localStorage.getItem("businessOwnerId");
+        const userData = localStorage.getItem("user");
+        const businessOwnerId = userData ? JSON.parse(userData)._id : null;
 
         if (!businessOwnerId) {
           console.log("No business owner id");
           setLoading(false);
           return;
         }
+        const res = await api.get(`/batch/business-owner/${businessOwnerId}`);
 
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/batch/business-owner/${businessOwnerId}`
-        );
-
-        const json = await res.json();
-
-        if (json.status && Array.isArray(json.data)) {
-          setBatches(json.data);
+        if (res?.data?.status && Array.isArray(res.data.data)) {
+          setBatches(res.data.data);
         } else {
           setBatches([]);
         }
@@ -46,7 +43,7 @@ export default function BatchManagement() {
   if (!batches.length) {
     return <EmptyState onCreate={() => console.log("Create Batch clicked")} />;
   }
-  
+
   return (
     <div className="p-6">
       {/* Page Title */}
