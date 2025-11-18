@@ -60,13 +60,13 @@ export default function ListView({
               <td className="p-3">{b.status}</td>
 
               <td className="p-3">
-                {b.scanData ? (
+                {b.scans ? (
                   <div className="flex items-center gap-2">
                     <span className="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded">
-                      {b.scanData.authentic || 0}
+                      {b.scans.anomaly || 0}
                     </span>
                     <span className="px-2 py-0.5 text-xs bg-red-100 text-red-700 rounded">
-                      {b.scanData.suspicious || 0}
+                      {b.scans.suspicious || 0}
                     </span>
                   </div>
                 ) : (

@@ -9,32 +9,47 @@ import api from "@/_lib/api";
 import { useBatches } from "@/_lib/utils/hooks/useBatches";
 import Pagination from "@/components/common/pagination";
 
+// ⭐ NEW FORM (full page)
+import StepForm from "@/components/batchmgt/stepForm";
+
 export default function BatchManagement() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState(search);
-  const { loading, batches, pagination } = useBatches(page, debouncedSearch);
+  const [showStepForm, setShowStepForm] = useState(false);
+
   const [view, setView] = useState<"card" | "list">("card");
   const [selected, setSelected] = useState<string[]>([]);
   const [showExport, setShowExport] = useState(false);
   const [exportType, setExportType] = useState("excel");
+  const [selectedProduct, setSelectedProduct] = useState("");
+  const [selectedBrand, setSelectedBrand] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("");
+
   const [products, setProducts] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
-
   const [filterLoading, setFilterLoading] = useState(false);
-  const businessOwnerId = localStorage.getItem("user")
-    ? JSON.parse(localStorage.getItem("user")!)._id
-    : "";
 
-  // Update debouncedSearch after user stops typing for 500ms
+  const businessOwnerId =
+    typeof window !== "undefined" && localStorage.getItem("businessOwner")
+      ? JSON.parse(localStorage.getItem("businessOwner")!)._id
+      : "";
+  const { loading, batches, pagination } = useBatches(
+    page,
+    debouncedSearch,
+    selectedProduct,
+    selectedBrand,
+    selectedStatus
+  );
+  // Debounce search
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(search);
-      setPage(1); // reset to first page on new search
+      setPage(1);
     }, 500);
-
-    return () => clearTimeout(handler); // clear timeout if user types again
+    return () => clearTimeout(handler);
   }, [search]);
+
   useEffect(() => {
     const fetchFilters = async () => {
       try {
@@ -43,16 +58,15 @@ export default function BatchManagement() {
           api.get(`/product/business-owner/${businessOwnerId}`),
           api.get(`/brand/business-owner/${businessOwnerId}`),
         ]);
-        setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
-        setBrands(Array.isArray(brandsRes.data) ? brandsRes.data : []);
+        setProducts(productsRes.data.data || []);
+        setBrands(brandsRes.data.data || []);
       } catch (err) {
         console.error("Failed to fetch filter data", err);
-        setProducts([]);
-        setBrands([]);
       } finally {
         setFilterLoading(false);
       }
     };
+
     if (businessOwnerId) fetchFilters();
   }, [businessOwnerId]);
 
@@ -94,20 +108,44 @@ export default function BatchManagement() {
     }
   };
 
-  if ((loading && search == "") || filterLoading)
+  if (showStepForm) {
+    return (
+      <StepForm
+        brands={brands}
+        products={products}
+        businessOwnerId={businessOwnerId}
+        onClose={() => setShowStepForm(false)}
+      />
+    );
+  }
+
+  if (
+    (loading &&
+      search === "" &&
+      selectedBrand == "" &&
+      selectedProduct == "") ||
+    filterLoading
+  ) {
     return (
       <div className="flex items-center justify-center h-[70vh]">
-        <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
-  if (!batches.length && search == "")
-    return <EmptyState onCreate={() => console.log("Create Batch clicked")} />;
+  }
 
+  if (!batches.length && search === "") {
+    return (
+      <EmptyState
+        onCreate={() => {
+          setShowStepForm(true);
+        }}
+      />
+    );
+  }
   return (
     <div className="p-6">
       {/* Header */}
       <div className="mb-6 flex flex-col gap-4">
-        {/* First line: View toggle & Create button */}
         <div className="flex justify-between items-center">
           <div className="flex items-center bg-gray-100 rounded-lg overflow-hidden">
             <button
@@ -120,6 +158,7 @@ export default function BatchManagement() {
             >
               <FiGrid /> Card View
             </button>
+
             <button
               onClick={() => setView("list")}
               className={`px-3 py-2 flex items-center gap-1 ${
@@ -132,42 +171,65 @@ export default function BatchManagement() {
             </button>
           </div>
 
-          <button className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg">
+          <button
+            onClick={() => setShowStepForm(true)}
+            className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg"
+          >
             Create New Batch
           </button>
         </div>
 
-        {/* Second line: Search + filters + export */}
+        {/* Filters */}
         <div className="flex flex-wrap items-center gap-3 justify-between bg-white p-4 rounded-xl border shadow-sm">
-          {/* Left side: Search + filters */}
           <div className="flex flex-wrap items-center gap-3">
             <input
               type="text"
               placeholder="Search By BatchId..."
-              className="px-3 py-2 border rounded-lg w-64 focus:ring-2 focus:ring-purple-300 focus:border-purple-500 outline-none transition"
+              className="px-3 py-2 border rounded-lg w-64"
               value={search}
               onChange={(e) => setSearch(e.target.value.trim())}
             />
 
-            <select className="px-3 py-2 border rounded-lg min-w-[150px] focus:ring-2 focus:ring-purple-300 focus:border-purple-500 outline-none transition">
+            <select
+              className="px-3 py-2 border rounded-lg min-w-[150px]"
+              value={selectedProduct}
+              onChange={(e) => {
+                setSelectedProduct(e.target.value);
+                setPage(1); // reset pagination
+              }}
+            >
               <option value="">All Products</option>
-              {products?.map((p) => (
+              {products.map((p) => (
                 <option key={p._id} value={p._id}>
-                  {p.name}
+                  {p.title}
                 </option>
-              ))}{" "}
+              ))}
             </select>
 
-            <select className="px-3 py-2 border rounded-lg min-w-[150px] focus:ring-2 focus:ring-purple-300 focus:border-purple-500 outline-none transition">
-              <option value="">All Brands </option>
-              {brands?.map((b) => (
+            <select
+              className="px-3 py-2 border rounded-lg min-w-[150px]"
+              value={selectedBrand}
+              onChange={(e) => {
+                setSelectedBrand(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">All Brands</option>
+              {brands.map((b) => (
                 <option key={b._id} value={b._id}>
                   {b.name}
                 </option>
               ))}
             </select>
 
-            <select className="px-3 py-2 border rounded-lg min-w-[150px] focus:ring-2 focus:ring-purple-300 focus:border-purple-500 outline-none transition">
+            <select
+              className="px-3 py-2 border rounded-lg min-w-[150px]"
+              value={selectedStatus}
+              onChange={(e) => {
+                setSelectedStatus(e.target.value);
+                setPage(1);
+              }}
+            >
               <option value="">All Status</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
@@ -175,7 +237,7 @@ export default function BatchManagement() {
             </select>
           </div>
 
-          {/* Right side: Export */}
+          {/* Export */}
           <div className="relative">
             <button
               onClick={() => setShowExport(!showExport)}
@@ -189,6 +251,8 @@ export default function BatchManagement() {
               <BiDownload className="text-lg" />
               Export
             </button>
+
+            {/* Export dropdown */}
             {showExport && selected.length > 0 && (
               <div className="absolute right-0 mt-2 w-56 bg-white border shadow-xl rounded-xl p-2 z-50">
                 <button
@@ -196,7 +260,7 @@ export default function BatchManagement() {
                     setExportType("excel");
                     handleExport();
                   }}
-                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 rounded-lg"
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                 >
                   Export as Excel (.xlsx)
                 </button>
@@ -206,7 +270,7 @@ export default function BatchManagement() {
                     setExportType("csv");
                     handleExport();
                   }}
-                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 rounded-lg"
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100 rounded-lg"
                 >
                   Export as CSV (.csv)
                 </button>
@@ -218,7 +282,8 @@ export default function BatchManagement() {
 
       {/* Batch Views */}
       <div className="min-h-[400px] relative">
-        {loading && search != "" ? (
+        {loading &&
+        (search !== "" || selectedBrand != "" || selectedProduct != "") ? (
           <div className="flex items-center justify-center h-[400px]">
             <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
           </div>

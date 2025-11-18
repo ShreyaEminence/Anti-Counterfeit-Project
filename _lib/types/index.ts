@@ -56,3 +56,107 @@ export interface PaginationProps {
   pagination: PaginationData | null;
   onPageChange: (page: number) => void;
 }
+export interface Props {
+  open: boolean;
+  setOpen: (v: boolean) => void;
+  payload: any; // API response object (as you provided)
+  onClose?: () => void;
+}
+
+export interface IBrandCategory {
+  _id: string;
+  categories: string;
+  subcategories: string[];
+}
+
+export interface IUserRef {
+  _id: string;
+  email: string;
+  role?: string;
+}
+
+export interface IBusinessOwnerRef {
+  _id: string;
+  businessName: string;
+  email: string;
+}
+
+export interface IBrand {
+  _id: string;
+  name: string;
+  logo?: string;
+  website?: string;
+  description?: string;
+
+  manage_categories: IBrandCategory[];
+
+  status: "active" | "inactive";
+
+  createdBy: IUserRef | string;
+  businessOwnerId: IBusinessOwnerRef | string;
+
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IProductSpecification {
+  _id?: string;
+  [key: string]: any;
+}
+
+export interface IBrandShortRef {
+  _id: string;
+  name?: string;
+  website?: string;
+}
+
+export interface IProduct {
+  _id: string;
+  skuId: string;
+  tags: string[];
+
+  title: string;
+  summary: string;
+
+  mrp: string;
+  currency: string;
+
+  mainImageUrl: string;
+  sliderImages: string[];
+  eanNumber: string;
+
+  brandId: IBrandShortRef | string;
+
+  specification: IProductSpecification;
+
+  youtubeVideoLink: string[];
+  facebookLink?: string;
+  twitterLink?: string;
+  instagramLink?: string;
+
+  warrantyEnable: boolean;
+  warrantyDuration?: string;
+  warrantyDurationUnit?: "days" | "months" | "years";
+
+  distributorPoints?: string;
+  retailerPoints?: string;
+  agentPoints?: string;
+  consumerPoints?: string;
+
+  createdBy: IUserRef | string;
+  businessOwnerId: IBusinessOwnerRef | string;
+
+  qrlink?: string;
+  qrGenerateType: "pre" | "post";
+  enableNft: boolean;
+
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StepFormProps  {
+  brands: IBrand[];
+  products: IProduct[];
+  businessOwnerId: string;
+  onClose: () => void; // Go back to listing
+};
