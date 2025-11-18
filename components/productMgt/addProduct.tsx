@@ -7,11 +7,9 @@ import { Button } from "@/components/ui/button";
 import { FiUploadCloud, FiTrash2, FiArrowLeft } from "react-icons/fi";
 import { AiOutlineCheckCircle } from "react-icons/ai";
 import { BiPlusCircle } from "react-icons/bi";
+import { FaFacebookF, FaInstagram, FaXTwitter } from "react-icons/fa6";
 
 export default function AddProduct({ onClose }: { onClose: () => void }) {
-  // ----------------------------------------------------------------------
-  // FORM STATES
-  // ----------------------------------------------------------------------
   const [brand, setBrand] = useState("");
   const [sku, setSku] = useState("");
   const [title, setTitle] = useState("");
@@ -22,32 +20,31 @@ export default function AddProduct({ onClose }: { onClose: () => void }) {
   const [noOfQR, setNoOfQR] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [description, setDescription] = useState("");
+  // ---------------- REVIEWS & RATINGS ----------------
+  const [reviewsEnabled, setReviewsEnabled] = useState(true);
+  const [reviewLinks, setReviewLinks] = useState<string[]>([""]);
 
-  // ----------------------------------------------------------------------
-  // MEDIA STATES
-  // ----------------------------------------------------------------------
+  // ---------------- SOCIAL LINKS ----------------
+  const [socialEnabled, setSocialEnabled] = useState(true);
+  const [facebookLink, setFacebookLink] = useState("");
+  const [instagramLink, setInstagramLink] = useState("");
+  const [twitterLink, setTwitterLink] = useState("");
+
   const [images, setImages] = useState<File[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const maxImages = 8;
   const minImages = 5;
 
-  // ----------------------------------------------------------------------
-  // LIFECYCLE STATES
-  // ----------------------------------------------------------------------
   const [lifecycleEnabled, setLifecycleEnabled] = useState(true);
   const [lifecycleType, setLifecycleType] = useState("warranty");
   const [warrantyPeriod, setWarrantyPeriod] = useState("");
   const [warrantyUnit, setWarrantyUnit] = useState("months");
+  const [eanNumber, setEanNumber] = useState("");
+  const [uploading, setUploading] = useState(false);
 
-  // ----------------------------------------------------------------------
-  // VIDEO STATES
-  // ----------------------------------------------------------------------
   const [videosEnabled, setVideosEnabled] = useState(true);
   const [videoLinks, setVideoLinks] = useState<string[]>([""]);
 
-  // ----------------------------------------------------------------------
-  // FETCH BRAND & CATEGORY DATA
-  // ----------------------------------------------------------------------
   const businessOwnerId =
     typeof window !== "undefined" && localStorage.getItem("businessOwner")
       ? JSON.parse(localStorage.getItem("businessOwner")!)._id
@@ -69,24 +66,62 @@ export default function AddProduct({ onClose }: { onClose: () => void }) {
     if (businessOwnerId) loadBrands();
   }, [businessOwnerId]);
 
-  // ----------------------------------------------------------------------
-  // IMAGE UPLOAD LOGIC
-  // ----------------------------------------------------------------------
-  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []) as File[];
+    if (!files.length) return;
 
-    if (images.length + files.length > maxImages) return;
+    if (images.length + files.length > maxImages) {
+      alert(`Maximum ${maxImages} images allowed.`);
+      return;
+    }
+    setUploading(true);
 
-    setImages((prev) => [...prev, ...files]);
-    setImageUrls((prev) => [
-      ...prev,
-      ...files.map((file) => URL.createObjectURL(file)),
-    ]);
+    // ---- Convert files to Base64 ----
+    const toBase64 = (file: File) =>
+      new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+    let uploadedUrls: string[] = [];
+
+    try {
+      if (files.length === 1) {
+        const base64 = await toBase64(files[0]);
+
+        const res = await api.post("/upload/image", {
+          image: base64,
+          folder: "products",
+        });
+
+        if (res.data?.data?.url) {
+          uploadedUrls.push(res.data.data.url);
+        }
+      } else {
+        const base64Images = await Promise.all(files.map(toBase64));
+
+        const res = await api.post("/upload/multiple", {
+          images: base64Images,
+          folder: "products",
+        });
+
+        if (Array.isArray(res.data?.data)) {
+          uploadedUrls = res.data.data.map((i: any) => i.url);
+        }
+      }
+
+      // ------------------ Update Preview + Payload State ------------------
+      setImageUrls((prev) => [...prev, ...uploadedUrls]);
+    } catch (err) {
+      console.error("Image upload failed:", err);
+      alert("Failed to upload image(s).");
+    } finally {
+      setUploading(false);
+    }
   }
 
-  // ----------------------------------------------------------------------
-  // BRAND SELECT
-  // ----------------------------------------------------------------------
   function handleBrandSelect(brandId: string) {
     setBrand(brandId);
     setCategory("");
@@ -95,7 +130,7 @@ export default function AddProduct({ onClose }: { onClose: () => void }) {
     const brandObj = brands.find((b) => b._id === brandId);
 
     if (brandObj?.manage_categories?.length > 0) {
-      setCategories(brandObj.manage_categories); // objects
+      setCategories(brandObj.manage_categories);
     } else {
       setCategories([]);
     }
@@ -103,9 +138,6 @@ export default function AddProduct({ onClose }: { onClose: () => void }) {
     setSubCategories([]);
   }
 
-  // ----------------------------------------------------------------------
-  // CATEGORY SELECT
-  // ----------------------------------------------------------------------
   function handleCategorySelect(selectedCategory: string) {
     setCategory(selectedCategory);
     setSubCategory("");
@@ -120,10 +152,6 @@ export default function AddProduct({ onClose }: { onClose: () => void }) {
       setSubCategories([]);
     }
   }
-
-  // ----------------------------------------------------------------------
-  // SUBMIT FORM
-  // ----------------------------------------------------------------------
   async function handleSubmit() {
     const form = new FormData();
     form.append("title", title);
@@ -142,6 +170,11 @@ export default function AddProduct({ onClose }: { onClose: () => void }) {
     form.append("videosEnabled", String(videosEnabled));
     form.append("videoLinks", JSON.stringify(videoLinks));
     form.append("businessOwnerId", businessOwnerId);
+    form.append("reviewsAndRatings", JSON.stringify(reviewLinks));
+    form.append("facebookLink", facebookLink);
+    form.append("instagramLink", instagramLink);
+    form.append("twitterLink", twitterLink);
+    form.append("eanNumber", eanNumber);
 
     images.forEach((img) => form.append("images", img));
 
@@ -154,9 +187,6 @@ export default function AddProduct({ onClose }: { onClose: () => void }) {
     }
   }
 
-  // ----------------------------------------------------------------------
-  // UI STARTS
-  // ----------------------------------------------------------------------
   return (
     <div className="p-6">
       {/* HEADER */}
@@ -278,7 +308,25 @@ export default function AddProduct({ onClose }: { onClose: () => void }) {
                 type="number"
                 className="w-full p-3 border rounded-lg"
                 value={noOfQR}
-                onChange={(e) => setNoOfQR(e.target.value)}
+                min={1}
+                max={2}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+
+                  if (value > 2) {
+                    alert(
+                      `Sorry ${value} is not allowed since You can only generate max 2 QRs."`
+                    );
+                    return;
+                  }
+
+                  if (value < 1) {
+                    setNoOfQR("1");
+                    return;
+                  }
+
+                  setNoOfQR(e.target.value);
+                }}
               />
             </div>
 
@@ -310,7 +358,17 @@ export default function AddProduct({ onClose }: { onClose: () => void }) {
                 ))}
               </div>
             </div>
-
+            {/* EAN Number */}
+            <div className="mt-4">
+              <label className="text-sm text-gray-600">EAN Number *</label>
+              <input
+                type="text"
+                className="w-full p-3 border rounded-lg"
+                placeholder="8901234098765"
+                value={eanNumber}
+                onChange={(e) => setEanNumber(e.target.value)}
+              />
+            </div>
             {/* Description */}
             <div className="mt-4">
               <label className="text-sm text-gray-600">Description *</label>
@@ -334,14 +392,32 @@ export default function AddProduct({ onClose }: { onClose: () => void }) {
               </span>
             </div>
 
-            <label className="mt-4 flex items-center gap-2 px-4 py-3 border bg-purple-50 text-purple-600 rounded-lg cursor-pointer w-fit">
-              <FiUploadCloud />
-              Upload Images
+            <label
+              className={`mt-4 flex items-center gap-2 px-4 py-3 border rounded-lg cursor-pointer w-fit
+  ${
+    uploading
+      ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+      : "bg-purple-50 text-purple-600"
+  }`}
+            >
+              {uploading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                  Uploading...
+                </div>
+              ) : (
+                <>
+                  <FiUploadCloud />
+                  Upload Images
+                </>
+              )}
+
               <input
                 type="file"
                 accept="image/*"
                 hidden
                 multiple
+                disabled={uploading}
                 onChange={handleImageUpload}
               />
             </label>
@@ -473,6 +549,124 @@ export default function AddProduct({ onClose }: { onClose: () => void }) {
               >
                 <BiPlusCircle /> Add another URL
               </button>
+            )}
+          </div>
+
+          {/* ---------------- REVIEWS & RATINGS ---------------- */}
+          <div className="bg-white p-6 rounded-xl border shadow-sm">
+            <div className="flex justify-between items-center">
+              <h3 className="font-semibold">Reviews & Ratings</h3>
+              <Switch
+                checked={reviewsEnabled}
+                onCheckedChange={setReviewsEnabled}
+              />
+            </div>
+
+            {reviewsEnabled &&
+              reviewLinks.map((link, idx) => (
+                <div key={idx} className="flex items-center gap-3 mt-4">
+                  <input
+                    type="text"
+                    placeholder="https://amazon.com/product"
+                    value={link}
+                    onChange={(e) => {
+                      const updated = [...reviewLinks];
+                      updated[idx] = e.target.value;
+                      setReviewLinks(updated);
+                    }}
+                    className="flex-1 p-3 border rounded-lg"
+                  />
+
+                  <button
+                    className="p-2 bg-red-100 text-red-600 rounded-lg"
+                    onClick={() =>
+                      setReviewLinks((prev) => prev.filter((_, i) => i !== idx))
+                    }
+                  >
+                    <FiTrash2 size={16} />
+                  </button>
+                </div>
+              ))}
+
+            {reviewsEnabled && (
+              <button
+                onClick={() => setReviewLinks([...reviewLinks, ""])}
+                className="mt-4 w-full bg-purple-50 text-purple-600 py-3 rounded-lg text-sm flex items-center justify-center gap-2"
+              >
+                <BiPlusCircle /> Add another URL
+              </button>
+            )}
+          </div>
+
+          {/* ---------------- SOCIAL LINKS ---------------- */}
+          <div className="bg-white p-6 rounded-xl border shadow-sm">
+            <div className="flex justify-between items-center">
+              <h3 className="font-semibold">Social Links</h3>
+              <Switch
+                checked={socialEnabled}
+                onCheckedChange={setSocialEnabled}
+              />
+            </div>
+
+            {socialEnabled && (
+              <div className="grid grid-cols-3 gap-6 mt-6">
+                {/* Facebook */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-600">Facebook</label>
+
+                  <div className="relative">
+                    <span className="absolute left-3 top-3.5 opacity-70">
+                      <FaFacebookF className="w-5 h-5" />
+                    </span>
+
+                    <input
+                      type="text"
+                      placeholder="Add URL"
+                      value={facebookLink}
+                      onChange={(e) => setFacebookLink(e.target.value)}
+                      className="w-full p-3 pl-10 border rounded-lg focus:ring-2 focus:ring-purple-300"
+                    />
+                  </div>
+                </div>
+
+                {/* Instagram */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-600">Instagram</label>
+
+                  <div className="relative">
+                    <span className="absolute left-3 top-3.5 opacity-70">
+                      <FaInstagram className="w-5 h-5" />
+                    </span>
+
+                    <input
+                      type="text"
+                      placeholder="Add URL"
+                      value={instagramLink}
+                      onChange={(e) => setInstagramLink(e.target.value)}
+                      className="w-full p-3 pl-10 border rounded-lg focus:ring-2 focus:ring-purple-300"
+                    />
+                  </div>
+                </div>
+
+                {/* X (Twitter) */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-600">X</label>
+
+                  <div className="relative">
+                    <span className="absolute left-3 top-3.5 opacity-70">
+                      <FaXTwitter className="w-5 h-5" />
+                    </span>
+
+                    <input
+                      type="text"
+                      placeholder="Add URL"
+                      value={twitterLink}
+                      onChange={(e) => setTwitterLink(e.target.value)}
+                      className="w-full p-3 pl-10 border rounded-lg focus:ring-2 focus:ring-purple-300"
+                    />
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 
