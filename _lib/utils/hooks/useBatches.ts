@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "@/_lib/api";
-import { Batch } from "@/_lib/types";
+import { Batch, BatchView } from "@/_lib/types";
 
 export function useBatches(
   page = 1,
@@ -10,7 +10,7 @@ export function useBatches(
   selectedStatus = ""
 ) {
   const [loading, setLoading] = useState(true);
-  const [batches, setBatches] = useState<Batch[]>([]);
+  const [batches, setBatches] = useState<BatchView[]>([]);
   const [pagination, setPagination] = useState<any>(null);
 
   useEffect(() => {

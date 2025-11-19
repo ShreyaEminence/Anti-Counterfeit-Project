@@ -8,6 +8,7 @@ export default function ListView({
   selected,
   toggleSelect,
   toggleSelectAll,
+  setViewDetails,
 }: ListViewProps) {
   return (
     <div className="bg-white rounded-xl shadow overflow-hidden mt-4">
@@ -53,9 +54,7 @@ export default function ListView({
               <td className="p-3">
                 {parseProduct(b.productId)?.title || "N/A"}
               </td>
-              <td className="p-3">
-                {b.brand?.name || "N/A"}
-              </td>
+              <td className="p-3">{b.brand?.name || "N/A"}</td>
               <td className="p-3">{b.noOfItems}</td>
               <td className="p-3">{b.status}</td>
 
@@ -76,7 +75,12 @@ export default function ListView({
 
               <td className="p-3 text-right">
                 <div className="flex justify-end items-center gap-2">
-                  <button className="px-4 py-1.5 text-sm text-purple-600 border border-purple-600 rounded-lg hover:bg-purple-50">
+                  <button
+                    onClick={() => {
+                      setViewDetails(b._id);
+                    }}
+                    className="px-4 py-1.5 text-sm text-purple-600 border border-purple-600 rounded-lg hover:bg-purple-50"
+                  >
                     More Details
                   </button>
                   <button className="p-2 hover:bg-gray-100 rounded-lg">

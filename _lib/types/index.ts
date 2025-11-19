@@ -1,13 +1,75 @@
+export interface ParsedProduct {
+  _id: string;
+  skuId: string;
+  title: string;
+  summary: string;
+  mrp: string;
+  currency: string;
+  brandId: any; // keep as any because API sends nested brand object
+}
+
+export interface BatchScanStats {
+  preScan: number;
+  postScan: number;
+  normal: number;
+  suspicious: number;
+  anomaly: number;
+}
+
+export interface BatchBrand {
+  _id: string;
+  name: string;
+  logo: string;
+  website: string;
+  description: string;
+  manage_categories: Array<{
+    categories: string;
+    subcategories: string[];
+    _id: string;
+  }>;
+  status: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BatchView {
+  _id: string;
+  productId: string;
+  businessOwnerId: string;
+
+  batchId: string;
+
+  manufactureDate: string;
+  expireDate: string;
+
+  status: "active" | "inactive" | "processing";
+  serialNumberType: "sequential" | "random";
+
+  prefix: string;
+  startSerialNumber: string;
+  noOfItems: number;
+
+  createdAt: string;
+  updatedAt: string;
+
+  brand: BatchBrand;
+
+  scans: BatchScanStats;
+}
+
 export interface ListViewProps {
-  batches: any[];
+  batches: BatchView[];
   selected: string[];
   toggleSelect: (id: string) => void;
   toggleSelectAll: () => void;
+  setViewDetails: React.Dispatch<React.SetStateAction<string>>;
 }
 export interface CardViewProps {
-  batches: any[];
+  batches: BatchView[];
   selected: string[];
   toggleSelect: (id: string) => void;
+  setViewDetails: React.Dispatch<React.SetStateAction<string>>;
 }
 export interface Product {
   _id: string;
@@ -154,17 +216,17 @@ export interface IProduct {
   updatedAt: string;
 }
 
-export interface StepFormProps  {
+export interface StepFormProps {
   brands: IBrand[];
   products: IProduct[];
   businessOwnerId: string;
   onClose: () => void; // Go back to listing
-};
- export interface ManageCategory {
+}
+export interface ManageCategory {
   categories: string;
   subcategories: string[];
 }
- export interface Brand {
+export interface Brand {
   _id: string;
   name: string;
   logo: string;
@@ -172,11 +234,178 @@ export interface StepFormProps  {
   description: string;
   categories: string;
   subcategories: string[];
-  products:string;
+  products: string;
   status: "active" | "inactive";
   createdBy: string;
   businessOwnerId: string;
   createdAt: string;
   updatedAt: string;
-   manage_categories?: ManageCategory[];
+  manage_categories?: ManageCategory[];
+}
+
+export interface Coupon {
+  _id: string;
+  code: string;
+  discountValue: number;
+  discountType: string;
+  minPurchaseAmount: number;
+  maxDiscountAmount: number;
+  validFrom: string;
+  validUntil: string;
+  isActive: boolean;
+  isScratched: boolean;
+  issued: boolean;
+  createdBy: string;
+  productId: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface Pagination {
+  currentPage: number;
+  totalPages: number;
+  totalCount: number;
+  limit: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+export interface AnalyticsResponse {
+  period: string;
+  timeRange: {
+    start: string;
+    end: string;
+  };
+  consumerMetrics: {
+    uniqueVerifiedConsumers: number;
+    totalScans: number;
+    totalPurchases: number;
+    totalWarranties: number;
+  };
+  loyaltyRewards: {
+    couponsIssued: number;
+    couponsRedeemed: number;
+    couponsActive: number;
+  };
+  conversionRatios: {
+    scanToPurchaseRatio: number;
+    purchaseToWarrantyRatio: number;
+    overallConversionRatio: number;
+  };
+  businessOwnerMetrics: {
+    activeBusinessOwners: number;
+    verifiedBusinessOwners: number;
+  };
+}
+
+// Parsed product (because backend sends stringify)
+export interface ProductInfo {
+  _id: string;
+  skuId: string;
+  title: string;
+  summary: string;
+  mrp: string;
+  currency: string;
+}
+
+// Each QR Tag / Serial Entry
+export interface BatchSerialItem {
+  _id: string;
+
+  productId: string; // still stringified JSON
+  batchId: string; // still stringified JSON
+  businessOwnerId: string;
+
+  productSerialNumber: string;
+  scanCount: number;
+  purchased: boolean;
+  status: string;
+
+  preScannerQRCodeUrl: string;
+  postScannerQRCodeUrl: string;
+
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Main Batch Object
+export interface BatchDetailsResponse {
+  _id: string;
+
+  productId: string; // stringified JSON → parse using parseProduct()
+  businessOwnerId: string;
+
+  batchId: string;
+
+  manufactureDate: string;
+  expireDate: string;
+
+  status: "active" | "inactive" | "processing";
+
+  serialNumberType: "sequential" | "random";
+  prefix: string;
+  startSerialNumber: string;
+
+  noOfItems: number;
+
+  tags: BatchSerialItem[];
+
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductInfo {
+  _id: string;
+  skuId: string;
+  title: string;
+  summary: string;
+  mrp: string;
+  currency: string;
+}
+
+export interface BatchInfoForTag {
+  _id: string;
+  batchId: string;
+  manufactureDate: string;
+  expireDate: string;
+}
+
+export interface BatchTag {
+  _id: string;
+  productId: ProductInfo; // parsed object
+  batchId: BatchInfoForTag; // parsed object
+  businessOwnerId: string;
+  productSerialNumber: string;
+  scanCount: number;
+  purchased: boolean;
+  status: "active" | "inactive";
+  preScannerQRCodeUrl: string;
+  postScannerQRCodeUrl: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BatchDetails {
+  _id: string;
+
+  // productId is coming as a stringified object → must parse
+  productId: ProductInfo | string;
+
+  businessOwnerId: string;
+
+  batchId: string;
+  manufactureDate: string;
+  expireDate: string;
+
+  status: "active" | "inactive";
+  serialNumberType: "sequential" | "random";
+
+  prefix: string;
+  startSerialNumber: string;
+  noOfItems: number;
+
+  tags: BatchTag[];
+
+  createdAt: string;
+  updatedAt: string;
 }

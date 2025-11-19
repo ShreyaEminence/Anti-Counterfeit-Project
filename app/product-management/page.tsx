@@ -6,6 +6,7 @@ import { BiEdit, BiTrash, BiDownload, BiSearch } from "react-icons/bi";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import AddProduct from "@/components/productMgt/addProduct";
+import { Pagination } from "@/_lib/types";
 
 export default function ProductManagement() {
   const [products, setProducts] = useState<any[]>([]);
@@ -16,10 +17,17 @@ export default function ProductManagement() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
+
   const businessOwnerId =
     typeof window !== "undefined" && localStorage.getItem("businessOwner")
       ? JSON.parse(localStorage.getItem("businessOwner")!)._id
       : "";
+  const [dateFilter, setDateFilter] = useState("");
+  useEffect(() => {
+    if (!businessOwnerId) return;
+    fetchProducts(1);
+  }, [search, brandFilter, categoryFilter, dateFilter]);
 
   // Fetch products
   useEffect(() => {
@@ -57,6 +65,30 @@ export default function ProductManagement() {
 
     return matchesSearch && matchesBrand && matchesCategory && matchesStatus;
   });
+  const fetchProducts = async (page = 1) => {
+    try {
+      setLoading(true);
+
+      let query = `/product?page=${page}&businessOwnerId=${businessOwnerId}`;
+
+      if (search) query += `&search=${search}`;
+      if (brandFilter) query += `&brandId=${brandFilter}`;
+      if (categoryFilter) query += `&category=${categoryFilter}`;
+      if (dateFilter) query += `&dateFilter=${dateFilter}`;
+
+      const res = await api.get(query);
+
+      if (res.data.status) {
+        setProducts(res.data.data.products);
+        setPagination(res.data.data.pagination);
+      }
+    } catch (err) {
+      console.error("Failed to fetch products", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const uniqueCategories = products
     .map((p) => p.category)
     .filter((cat, index, arr) => arr.indexOf(cat) === index);
@@ -148,6 +180,15 @@ export default function ProductManagement() {
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
         </select>
+        <select
+          className="border rounded-lg px-3 py-2 min-w-[150px]"
+          value={dateFilter}
+          onChange={(e) => setDateFilter(e.target.value)}
+        >
+          <option value="week">This Week</option>
+          <option value="month">This Month</option>
+          <option value="year">This Year</option>
+        </select>
       </div>
 
       {/* LOADER */}
@@ -163,21 +204,22 @@ export default function ProductManagement() {
               <thead className="bg-gray-100 text-gray-600">
                 <tr>
                   <th className="p-3 text-left">Product Title</th>
-                  <th className="p-3 text-left">SKU</th>
-                  <th className="p-3 text-left">Created At</th>
+                  <th className="p-3 text-left">SKU ID</th>
+                  <th className="p-3 text-left">Last Updated At</th>
                   <th className="p-3 text-left">Category</th>
-                  <th className="p-3 text-left">Brand</th>
-                  <th className="p-3 text-left">Status</th>
+                  {/* <th className="p-3 text-left">Brand</th> */}
+                  <th className="p-3 text-left">Product Status</th>
                   <th className="p-3 text-left">Capabilities</th>
+                  <th className="p-3 text-left">Tag</th>
                   <th className="p-3 text-right">Action</th>
                 </tr>
               </thead>
 
               <tbody>
                 {filteredProducts.map((item) => {
-                  const brandName = item.brandId.includes("name")
-                    ? item.brandId.split("name: '")[1]?.split("'")[0]
-                    : "Brand";
+                  // const brandName = item.brandId.includes("name")
+                  //   ? item.brandId.split("name: '")[1]?.split("'")[0]
+                  //   : "Brand";
 
                   return (
                     <tr
@@ -187,10 +229,10 @@ export default function ProductManagement() {
                       <td className="p-3 font-medium">{item.title}</td>
                       <td className="p-3">{item.skuId}</td>
                       <td className="p-3">
-                        {new Date(item.createdAt).toLocaleDateString()}
+                        {new Date(item.updatedAt).toLocaleDateString()}
                       </td>
                       <td className="p-3">{item.category}</td>
-                      <td className="p-3">{brandName}</td>
+                      {/* <td className="p-3">{brandName}</td> */}
 
                       <td className="p-3">
                         <span
@@ -209,10 +251,31 @@ export default function ProductManagement() {
                           Warranty
                         </span>
                       </td>
+                      <td className="p-3 max-w-[180px]">
+                        {item.tags?.length ? (
+                          <div className="flex flex-wrap gap-1">
+                            {item.tags.map((tag: string, i: number) => (
+                              <span
+                                key={i}
+                                className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">No tags</span>
+                        )}
+                      </td>
 
-                      <td className="p-3 text-right flex justify-end gap-4">
-                        <BiEdit className="text-blue-600 cursor-pointer text-lg" />
-                        <BiTrash className="text-red-600 cursor-pointer text-lg" />
+                      <td className="p-3 text-right flex justify-end gap-3">
+                        <button className="px-4 py-1.5 rounded-lg text-sm font-medium text-blue-600 bg-blue-100 hover:bg-blue-200 transition">
+                          View
+                        </button>
+                        <button className="px-4 py-1.5 rounded-lg text-sm font-medium text-purple-700 bg-purple-100 hover:bg-purple-200 transition">
+                          Edit
+                        </button>
+                        <BiTrash className="mt-1 text-red-600 cursor-pointer text-xl" />
                       </td>
                     </tr>
                   );
@@ -221,17 +284,36 @@ export default function ProductManagement() {
             </table>
           </div>
 
-          {/* PAGINATION (Static example, replace later) */}
-          <div className="flex justify-between items-center mt-4 text-sm text-gray-600">
-            <p>Showing {filteredProducts.length} products</p>
-            <div className="flex gap-2">
-              <button className="px-3 py-1 border rounded">Prev</button>
-              <button className="px-3 py-1 border rounded bg-purple-600 text-white">
-                1
-              </button>
-              <button className="px-3 py-1 border rounded">Next</button>
+          {/* PAGINATION */}
+          {pagination && (
+            <div className="flex justify-between items-center mt-4 text-sm text-gray-600">
+              <p>
+                Showing page {pagination.currentPage} of {pagination.totalPages}
+              </p>
+
+              <div className="flex gap-2">
+                <button
+                  disabled={!pagination.hasPrevPage}
+                  onClick={() => fetchProducts(pagination.currentPage - 1)}
+                  className="px-3 py-1 border rounded disabled:opacity-50"
+                >
+                  Prev
+                </button>
+
+                <button className="px-3 py-1 border rounded bg-purple-600 text-white">
+                  {pagination.currentPage}
+                </button>
+
+                <button
+                  disabled={!pagination.hasNextPage}
+                  onClick={() => fetchProducts(pagination.currentPage + 1)}
+                  className="px-3 py-1 border rounded disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </>
       )}
     </div>

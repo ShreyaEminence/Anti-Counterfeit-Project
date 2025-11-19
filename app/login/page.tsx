@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
 import api from "@/_lib/api";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
@@ -16,6 +17,12 @@ export default function LoginPage() {
     password: "",
   });
 
+  useEffect(() => {
+    const token = Cookies.get("token");
+    if (token) {
+      router.push("/dashboard");
+    }
+  }, []);
   // STATIC FCM TOKEN
   const STATIC_FCM_TOKEN = "dGVzdF9mY21fdG9rZW5fZXhhbXBsZQ";
 

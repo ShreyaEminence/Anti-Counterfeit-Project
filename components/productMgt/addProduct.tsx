@@ -153,37 +153,57 @@ export default function AddProduct({ onClose }: { onClose: () => void }) {
     }
   }
   async function handleSubmit() {
-    const form = new FormData();
-    form.append("title", title);
-    form.append("brandId", brand);
-    form.append("skuId", sku);
-    form.append("category", category);
-    form.append("subCategory", subCategory);
-    form.append("template", template);
-    form.append("noOfQR", noOfQR);
-    form.append("tags", JSON.stringify(tags));
-    form.append("description", description);
-    form.append("lifecycleEnabled", String(lifecycleEnabled));
-    form.append("lifecycleType", lifecycleType);
-    form.append("warrantyPeriod", warrantyPeriod);
-    form.append("warrantyUnit", warrantyUnit);
-    form.append("videosEnabled", String(videosEnabled));
-    form.append("videoLinks", JSON.stringify(videoLinks));
-    form.append("businessOwnerId", businessOwnerId);
-    form.append("reviewsAndRatings", JSON.stringify(reviewLinks));
-    form.append("facebookLink", facebookLink);
-    form.append("instagramLink", instagramLink);
-    form.append("twitterLink", twitterLink);
-    form.append("eanNumber", eanNumber);
+    if (imageUrls.length === 0) {
+      alert("Please upload at least one product image.");
+      return;
+    }
 
-    images.forEach((img) => form.append("images", img));
+    const payload = {
+      skuId: sku,
+      tags,
+      title,
+      summary: description,
+      mrp: "0", // you don’t have MRP field in UI → send 0 or add a field
+      currency: "USD",
+
+      mainImageUrl: imageUrls[0], // first image
+      sliderImages: imageUrls, // all images
+      eanNumber,
+      brandId: brand,
+
+      specification: {},
+
+      youtubeVideoLink: videoLinks.filter((v) => v.trim() !== ""),
+
+      facebookLink,
+      twitterLink,
+      instagramLink,
+
+      warrantyEnable: lifecycleEnabled,
+      warrantyDuration: warrantyPeriod,
+      warrantyDurationUnit: warrantyUnit === "years" ? "years" : "months",
+
+      distributorPoints: 0,
+      retailerPoints: 0,
+      agentPoints: 0,
+      consumerPoints: 0,
+
+      category,
+      subCategory,
+      qrGenerateType: "pre",
+
+      enableNft: false,
+
+      businessOwnerId,
+    };
 
     try {
-      await api.post("/product", form);
+      await api.post("/product", payload);
       alert("Product Created Successfully!");
       onClose();
     } catch (err) {
       console.error("Error creating product", err);
+      alert("Product creation failed.");
     }
   }
 
