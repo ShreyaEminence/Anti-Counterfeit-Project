@@ -215,69 +215,6 @@ console.log(totalBrands,"totalBrands")
               <th className="px-5 py-3 text-center">Actions</th>
             </tr>
           </thead>
-{/* 
-          <tbody>
-            {brands.map((brand) => (
-              <tr key={brand._id} className="border-t hover:bg-gray-50">
-                <td className="px-5 py-3">{brand.name}</td>
-
-                <td className="px-5 py-3">
-                  {new Date(brand.createdAt).toLocaleDateString()}
-                </td>
-
-                <td className="px-5 py-3">
-                  <div className="flex flex-wrap gap-2">
-                    {brand.manage_categories?.length ? (
-                      <>
-                        {brand.manage_categories.slice(0, 2).map((cat, i) => (
-                          <span
-                            key={i}
-                            className="bg-blue-500 text-white px-2 py-1 rounded-full text-sm"
-                          >
-                            {cat.categories}
-                          </span>
-                        ))}
-                        {brand.manage_categories.length > 2 && (
-                          <span className="bg-gray-300 text-gray-700 px-2 py-1 rounded-full text-sm">
-                            +{brand.manage_categories.length - 2} more
-                          </span>
-                        )}
-                      </>
-                    ) : (
-                      <span className="text-gray-400">No Categories</span>
-                    )}
-                  </div>
-                </td>
-
-                <td className="px-5 py-3">{brand.products || "-"}</td>
-
-                <td className="px-5 py-3">{brand.status}</td>
-
-                <td className="px-5 py-3 flex items-center justify-center gap-3">
-                  <button
-                    className="p-2 rounded hover:bg-gray-200"
-                    onClick={() => handleView(brand)}
-                  >
-                    👁
-                  </button>
-
-                  <button
-                    className="p-2 rounded hover:bg-green-200"
-                    onClick={() => handleEdit(brand)}
-                  >
-                    ✏️
-                  </button>
-
-                  <button
-                    className="p-2 rounded hover:bg-red-200"
-                    onClick={() => handleDelete(brand)}
-                  >
-                    🗑️
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody> */}
 
 
           <tbody>

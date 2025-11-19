@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import api from "@/_lib/api";
 import DeleteBrandModal from "@/modals/DeleteModal";
 import { Brand } from "@/_lib/types"; // using your Brand only
+import ProductSection from "@/components/Brand/Products";
 
 export default function BrandViewPage({ params }: { params: { id: string } }) {
   const { id } = params;
@@ -205,7 +206,7 @@ export default function BrandViewPage({ params }: { params: { id: string } }) {
           {activeTab === "categories" ? (
             <CategorySection categories={categories} />
           ) : (
-            <ProductSection />
+            <ProductSection brandId={id}/>
           )}
         </div>
       </div>
@@ -263,11 +264,11 @@ function CategorySection({
   );
 }
 
-function ProductSection() {
-  return (
-    <p className="text-gray-500">Products list will come after API setup.</p>
-  );
-}
+// function ProductSection() {
+//   return (
+//     <p className="text-gray-500">Products list will come after API setup.</p>
+//   );
+// }
 
 /* ---------------- Small Components ---------------- */
 
