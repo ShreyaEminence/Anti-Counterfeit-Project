@@ -1,17 +1,89 @@
 "use client";
 
+import api from "@/_lib/api";
 import { BatchDetailsResponse } from "@/_lib/types";
 import { parseProduct } from "@/_lib/utils/helper";
 
 const Overview = ({ batch }: { batch: BatchDetailsResponse }) => {
   const product = parseProduct(batch.productId);
+  const handleDownloadQRPDF = async () => {
+    try {
+      const productId = product?._id;
+      const batchId = batch?._id;
+      const businessOwnerId =
+        typeof window !== "undefined" && localStorage.getItem("businessOwner")
+          ? JSON.parse(localStorage.getItem("businessOwner")!)._id
+          : "";
+
+      console.log(productId, batchId, businessOwnerId, "data");
+      if (!productId || !batchId || !businessOwnerId) {
+        alert("Missing required IDs for downloading PDF.");
+        return;
+      }
+
+      const url = `/tag/export/pdf?productId=${productId}&batchId=${batchId}&businessOwnerId=${businessOwnerId}`;
+
+      const response = await api.get(url, {
+        responseType: "blob",
+      });
+
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const fileURL = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = fileURL;
+      link.download = `QR-Codes-${batch.batchId}.pdf`;
+      link.click();
+
+      window.URL.revokeObjectURL(fileURL);
+    } catch (err) {
+      console.error("PDF download failed:", err);
+      alert("Something went wrong while downloading.");
+    }
+  };
+  const handleDownloadQRExcel = async () => {
+    try {
+      const productId = product?._id;
+      const batchId = batch?._id;
+
+      const businessOwnerId =
+        typeof window !== "undefined" && localStorage.getItem("businessOwner")
+          ? JSON.parse(localStorage.getItem("businessOwner")!)._id
+          : "";
+
+      if (!productId || !batchId || !businessOwnerId) {
+        alert("Missing required IDs for downloading Excel.");
+        return;
+      }
+
+      const url = `/tag/export/excel?productId=${productId}&batchId=${batchId}&businessOwnerId=${businessOwnerId}`;
+
+      const response = await api.get(url, {
+        responseType: "blob",
+      });
+
+      const blob = new Blob([response.data], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+
+      const fileURL = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = fileURL;
+      link.download = `QR-Codes-${batch.batchId}.xlsx`;
+      link.click();
+
+      window.URL.revokeObjectURL(fileURL);
+    } catch (err) {
+      console.error("Excel download failed:", err);
+      alert("Something went wrong while downloading Excel.");
+    }
+  };
 
   const serialEnd =
     batch.serialNumberType === "sequential"
       ? Number(batch.startSerialNumber) + Number(batch.noOfItems) - 1
       : null;
-
-  const preScans = batch.tags?.filter((t) => t.status === "active").length ?? 0;
 
   return (
     <div className="space-y-6">
@@ -133,10 +205,16 @@ const Overview = ({ batch }: { batch: BatchDetailsResponse }) => {
 
       {/* ---------- Footer Buttons ---------- */}
       <div className="flex justify-end gap-4 mt-6">
-        <button className="px-4 py-2 rounded-lg bg-purple-100 text-purple-700">
+        <button
+          onClick={handleDownloadQRExcel}
+          className="px-4 py-2 rounded-lg bg-purple-100 text-purple-700"
+        >
           Download QR Excel
         </button>
-        <button className="px-4 py-2 rounded-lg bg-purple-100 text-purple-700">
+        <button
+          onClick={handleDownloadQRPDF}
+          className="px-4 py-2 rounded-lg bg-purple-100 text-purple-700"
+        >
           Download QR PDF
         </button>
         <button className="px-4 py-2 rounded-lg bg-purple-600 text-white">

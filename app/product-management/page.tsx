@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import AddProduct from "@/components/productMgt/addProduct";
 import { Pagination } from "@/_lib/types";
+// import ViewProduct from "@/components/productMgt/viewProduct";
 
 export default function ProductManagement() {
   const [products, setProducts] = useState<any[]>([]);
@@ -17,6 +18,8 @@ export default function ProductManagement() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [viewProduct, setViewProduct] = useState(false);
+
   const [pagination, setPagination] = useState<Pagination | null>(null);
 
   const businessOwnerId =
@@ -95,6 +98,9 @@ export default function ProductManagement() {
   if (showAddProduct) {
     return <AddProduct onClose={() => setShowAddProduct(false)} />;
   }
+  // if (viewProduct) {
+  //   // return <ViewProduct onClose={() => setViewProduct(false)} />;
+  // }
   return (
     <div className="p-6">
       {/* HEADER */}
