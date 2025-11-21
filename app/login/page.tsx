@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import api from "@/_lib/api";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { setCustomCookie } from "@/_lib/utils/helper";
+import { getFcmToken } from "@/lib/firebase";
+
 export default function LoginPage() {
   const router = useRouter();
 
@@ -15,55 +17,151 @@ export default function LoginPage() {
     email: "",
     password: "",
   });
-
+ // Ask Notification Permission
+  async function requestNotificationPermission(): Promise<boolean> {
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        console.warn("Notification permission not granted");
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Notification permission error:", err);
+      return false;
+    }
+  }
   // STATIC FCM TOKEN
-  const STATIC_FCM_TOKEN = "dGVzdF9mY21fdG9rZW5fZXhhbXBsZQ";
-
+ 
   const handleInput = (e: any) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleLogin = async (e: any) => {
-    e.preventDefault();
-    setLoading(true);
 
-    try {
-      const payload = {
-        email: formData.email,
-        password: formData.password,
-        fcmToken: STATIC_FCM_TOKEN,
-      };
 
-      const { data } = await api.post("/business-owner/login", payload);
 
-      // Save token
-      localStorage.setItem("token", data?.token);
-      setCustomCookie("token", data?.token);
+  // const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+  //   e.preventDefault();
+  //   if (loading) return;
+  //   setLoading(true);
 
-      // Save user
-      if (data?.data?.user) {
-        localStorage.setItem("user", JSON.stringify(data.data.user));
+  //   const email = formData.email.trim();
+  //   const password = formData.password.trim();
+  //   if (!email || !password) {
+  //     alert("Email or password missing!");
+  //     setLoading(false);
+  //     return;
+  //   }
+
+  //   let fcmToken: string | null = null;
+
+  //   try {
+  //     // Ask user for notification permission
+  //     const allowed = await requestNotificationPermission();
+  //     if (allowed) {
+  //       fcmToken = await getFcmToken();
+  //       console.log("FCM Token Generated:", fcmToken);
+  //     } else {
+  //       console.log("User denied notification permission");
+  //     }
+  //   } catch (err) {
+  //     console.warn("Failed to get FCM token:", err);
+  //   }
+
+  //   const payload = {
+  //     email,
+  //     password,
+  //     fcmToken: fcmToken || "NO_TOKEN",
+  //   };
+
+  //   try {
+  //     const { data } = await api.post("/business-owner/login", payload);
+
+  //     localStorage.setItem("token", data?.token);
+  //     setCustomCookie("token", data?.token);
+
+  //     if (data?.data?.user) {
+  //       localStorage.setItem("user", JSON.stringify(data.data.user));
+  //     }
+  //     if (data?.data?.businessOwner) {
+  //       localStorage.setItem(
+  //         "businessOwner",
+  //         JSON.stringify(data.data.businessOwner)
+  //       );
+  //     }
+
+  //     router.push("/dashboard");
+  //   } catch (error: any) {
+  //     console.error(error);
+  //     alert(error?.response?.data?.message || "Login failed!");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+
+
+
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  if (loading) return;
+  setLoading(true);
+
+  const email = formData.email.trim();
+  const password = formData.password.trim();
+  if (!email || !password) {
+    alert("Email or password missing!");
+    setLoading(false);
+    return;
+  }
+
+  let fcmToken: string | null = null;
+
+  try {
+    // Ask the user for notification permission
+    if (Notification.permission === "default") {
+      const permission = await Notification.requestPermission();
+      if (permission === "granted") {
+        console.log("granted")
+        fcmToken = await getFcmToken();
+        console.log("FCM Token Generated:", fcmToken);
+      } else {
+        console.log("User denied notification permission");
       }
-
-      // Save business owner data
-      if (data?.data?.businessOwner) {
-        localStorage.setItem(
-          "businessOwner",
-          JSON.stringify(data.data.businessOwner)
-        );
-      }
-
-      // Redirect
-      router.push("/dashboard");
-    } catch (error: any) {
-      console.error(error);
-      alert(
-        error?.response?.data?.message || "Login failed. Please try again!"
-      );
-    } finally {
-      setLoading(false);
+    } else if (Notification.permission === "granted") {
+      fcmToken = await getFcmToken();
+      console.log("FCM Token already granted:", fcmToken);
+    } else {
+      console.log("Notifications blocked by user");
     }
+  } catch (err) {
+    console.warn("Failed to get FCM token:", err);
+  }
+
+  const payload = {
+    email,
+    password,
+    fcmToken: fcmToken || "NO_TOKEN",
   };
+
+  try {
+    const { data } = await api.post("/business-owner/login", payload);
+
+    localStorage.setItem("token", data?.token);
+    setCustomCookie("token", data?.token);
+
+    if (data?.data?.user) localStorage.setItem("user", JSON.stringify(data.data.user));
+    if (data?.data?.businessOwner)
+      localStorage.setItem("businessOwner", JSON.stringify(data.data.businessOwner));
+
+    router.push("/dashboard");
+  } catch (error: any) {
+    console.error(error);
+    alert(error?.response?.data?.message || "Login failed!");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleGoogleSignIn = () => {
     console.log("Google Sign-In Coming Soon");

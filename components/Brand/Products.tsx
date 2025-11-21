@@ -56,7 +56,7 @@ import api from "@/_lib/api";
             >
               Prev
             </button>
-
+ 
             <span className="px-3 py-1">
               Page {page} of {totalPages || 1}
             </span>
