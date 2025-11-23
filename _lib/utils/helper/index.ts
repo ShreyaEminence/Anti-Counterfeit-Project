@@ -102,3 +102,38 @@ export function getSerialRange(prefix: string, start: string, count: number) {
     end: endSerial,
   };
 }
+
+export const mapFilterToQuery = (filter: string) => {
+  switch (filter) {
+    case "active":
+      return "isActive=true";
+
+    case "inactive":
+      return "isActive=false";
+
+    case "redeemed":
+      return "isScratched=true";
+
+    case "issued":
+      return "issued=true";
+
+    // Sorting options using allowed fields
+    case "recent":
+      return "sortBy=createdAt&sortOrder=desc";
+
+    case "oldest":
+      return "sortBy=createdAt&sortOrder=asc";
+
+    case "discount-high":
+      return "sortBy=discountValue&sortOrder=desc";
+
+    case "discount-low":
+      return "sortBy=discountValue&sortOrder=asc";
+
+    case "expiring-soon":
+      return "sortBy=validUntil&sortOrder=asc";
+
+    default:
+      return ""; // no filter
+  }
+};

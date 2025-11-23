@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
 import api from "@/_lib/api";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
@@ -31,6 +32,13 @@ export default function LoginPage() {
       return false;
     }
   }
+
+  useEffect(() => {
+    const token = Cookies.get("token");
+    if (token) {
+      router.push("/dashboard");
+    }
+  }, []);
   // STATIC FCM TOKEN
  
   const handleInput = (e: any) => {
@@ -39,65 +47,6 @@ export default function LoginPage() {
 
 
 
-
-  // const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-  //   e.preventDefault();
-  //   if (loading) return;
-  //   setLoading(true);
-
-  //   const email = formData.email.trim();
-  //   const password = formData.password.trim();
-  //   if (!email || !password) {
-  //     alert("Email or password missing!");
-  //     setLoading(false);
-  //     return;
-  //   }
-
-  //   let fcmToken: string | null = null;
-
-  //   try {
-  //     // Ask user for notification permission
-  //     const allowed = await requestNotificationPermission();
-  //     if (allowed) {
-  //       fcmToken = await getFcmToken();
-  //       console.log("FCM Token Generated:", fcmToken);
-  //     } else {
-  //       console.log("User denied notification permission");
-  //     }
-  //   } catch (err) {
-  //     console.warn("Failed to get FCM token:", err);
-  //   }
-
-  //   const payload = {
-  //     email,
-  //     password,
-  //     fcmToken: fcmToken || "NO_TOKEN",
-  //   };
-
-  //   try {
-  //     const { data } = await api.post("/business-owner/login", payload);
-
-  //     localStorage.setItem("token", data?.token);
-  //     setCustomCookie("token", data?.token);
-
-  //     if (data?.data?.user) {
-  //       localStorage.setItem("user", JSON.stringify(data.data.user));
-  //     }
-  //     if (data?.data?.businessOwner) {
-  //       localStorage.setItem(
-  //         "businessOwner",
-  //         JSON.stringify(data.data.businessOwner)
-  //       );
-  //     }
-
-  //     router.push("/dashboard");
-  //   } catch (error: any) {
-  //     console.error(error);
-  //     alert(error?.response?.data?.message || "Login failed!");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
 
 
 

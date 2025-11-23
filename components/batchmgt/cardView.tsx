@@ -7,6 +7,7 @@ export default function CardView({
   batches,
   selected,
   toggleSelect,
+  setViewDetails,
 }: CardViewProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -111,14 +112,14 @@ export default function CardView({
             <div className="flex justify-between mt-2 text-center">
               <div>
                 <p className="text-xl font-semibold text-gray-900">
-                  {b.scanData?.authentic || 0}
+                  {b.scans?.suspicious || 0}
                 </p>
                 <p className="text-xs text-gray-500">Total Scans</p>
               </div>
 
               <div>
                 <p className="text-xl font-semibold text-gray-900">
-                  {b.scanData?.purchased || 0}
+                  {b.scans?.postScan || 0}
                 </p>
                 <p className="text-xs text-gray-500">Purchased</p>
               </div>
@@ -126,7 +127,12 @@ export default function CardView({
           </div>
 
           {/* View Details Button */}
-          <button className="mt-4 w-full bg-purple-600 text-white py-2.5 rounded-lg font-medium hover:bg-purple-700 transition">
+          <button
+            onClick={() => {
+              setViewDetails(b._id);
+            }}
+            className="mt-4 w-full bg-purple-600 text-white py-2.5 rounded-lg font-medium hover:bg-purple-700 transition"
+          >
             View Details →
           </button>
 

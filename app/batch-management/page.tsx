@@ -11,6 +11,7 @@ import Pagination from "@/components/common/pagination";
 
 // ⭐ NEW FORM (full page)
 import StepForm from "@/components/batchmgt/stepForm";
+import BatchDetails from "@/components/batchmgt/batchDetails";
 
 export default function BatchManagement() {
   const [page, setPage] = useState(1);
@@ -29,7 +30,7 @@ export default function BatchManagement() {
   const [products, setProducts] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
   const [filterLoading, setFilterLoading] = useState(false);
-
+  const [viewDeatils, setViewDeatils] = useState("");
   const businessOwnerId =
     typeof window !== "undefined" && localStorage.getItem("businessOwner")
       ? JSON.parse(localStorage.getItem("businessOwner")!)._id
@@ -118,7 +119,9 @@ export default function BatchManagement() {
       />
     );
   }
-
+  if (viewDeatils) {
+    return <BatchDetails id={viewDeatils} />;
+  }
   if (
     (loading &&
       search === "" &&
@@ -294,6 +297,7 @@ export default function BatchManagement() {
             batches={batches}
             selected={selected}
             toggleSelect={toggleSelect}
+            setViewDetails={setViewDeatils}
           />
         ) : (
           <ListView
@@ -301,6 +305,7 @@ export default function BatchManagement() {
             selected={selected}
             toggleSelect={toggleSelect}
             toggleSelectAll={toggleSelectAll}
+            setViewDetails={setViewDeatils}
           />
         )}
       </div>
